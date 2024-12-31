@@ -21,8 +21,15 @@ const (
 type Options func(*Tracer)
 
 type Tracer struct {
-	ServiceName string
-	Command     string
+	ServiceName string `toml:"service_name"`
+	Command     string `toml:"command"`
+	Deployment  string `toml:"deployment"`
+}
+
+func WithDeployment(name string) Options {
+	return func(tracer *Tracer) {
+		tracer.Deployment = name
+	}
 }
 
 func WithCommand(name string) Options {
@@ -37,6 +44,8 @@ func WithServiceName(name string) Options {
 	}
 }
 
+const deploymentKey = "deployment"
+
 func (cfg *Config) New(opts ...Options) {
 	tracer := new(Tracer)
 	if cfg.Ratio == 0 {
@@ -47,7 +56,10 @@ func (cfg *Config) New(opts ...Options) {
 		opt(tracer)
 	}
 	if tracer.ServiceName == "" {
-		tracer.ServiceName = os.Getenv("TECH_SERVICE_NAME")
+		tracer.ServiceName = os.Getenv("TECH.SERVICE.NAME")
+	}
+	if tracer.Deployment == "" {
+		tracer.Deployment = os.Getenv("TECH.SERVICE.DEPLOYMENT")
 	}
 
 	exp, err := exporter.New(context.Background(),
@@ -61,12 +73,10 @@ func (cfg *Config) New(opts ...Options) {
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(
 			resource.NewWithAttributes(
-				semconv.
-					SchemaURL,
-				semconv.
-					ServiceNameKey.String(tracer.ServiceName),
-				attribute.String(
-					commandKey, tracer.Command),
+				semconv.SchemaURL,
+				semconv.ServiceNameKey.String(tracer.ServiceName),
+				attribute.String(commandKey, tracer.Command),
+				attribute.String(deploymentKey, tracer.Deployment),
 			),
 		),
 		sdktrace.WithSampler(

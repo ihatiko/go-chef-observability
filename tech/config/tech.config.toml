@@ -1,0 +1,25 @@
+[tech.service]
+# имя сервиса
+name = "example"
+# режим дебага
+debug = true
+
+[tech.http]
+port = 8080
+pprof_port = 8081
+pprof = false
+liveness_path = "/liveness"
+readiness_path = "/readiness"
+metrics_path = "/metrics"
+
+[tech.tracer]
+host = "http://localhost:14268/api/traces"
+ratio = 0.1
+
+[tech.profiler]
+host = "http://localhost:4040"
+ratio = 5
+
+[tech.logger]
+encoding = "json"
+level = "info"
