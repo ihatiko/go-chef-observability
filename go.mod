@@ -3,9 +3,8 @@ module github.com/ihatiko/go-chef-observability
 go 1.23.4
 
 require (
-	github.com/ihatiko/chef/components/core v0.0.0-20241227193505-e4d31c45cdc0
-	github.com/ihatiko/chef/components/tech/config v0.0.0-20241227193505-e4d31c45cdc0
-	github.com/ihatiko/chef/components/tech/toml v0.0.0-20241227193505-e4d31c45cdc0
+	github.com/ihatiko/go-chef-configuration v0.0.0-20241231143343-8f0ca464afdd
+	github.com/ihatiko/go-chef-core-sdk v0.0.1
 	github.com/lmittmann/tint v1.0.6
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
@@ -23,8 +22,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1 // indirect
-	github.com/ihatiko/chef/components/tech/environ v0.0.0-20241227142407-9f0b6785d337 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect

@@ -2,8 +2,8 @@ package tech
 
 import (
 	"fmt"
-	tC "github.com/ihatiko/chef/components/tech/config"
-	"github.com/ihatiko/chef/components/tech/toml"
+	tC "github.com/ihatiko/go-chef-configuration/config"
+	"github.com/ihatiko/go-chef-configuration/toml"
 )
 
 func Use(arg string) error {
