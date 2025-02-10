@@ -23,7 +23,7 @@ type Options func(*Tracer)
 type Tracer struct {
 	ServiceName string `toml:"service_name"`
 	Command     string `toml:"command"`
-	Deployment  string `toml:"deployment"`
+	Deployment  string `toml:"deployments"`
 }
 
 func WithDeployment(name string) Options {
@@ -44,7 +44,7 @@ func WithServiceName(name string) Options {
 	}
 }
 
-const deploymentKey = "deployment"
+const deploymentKey = "deployments"
 
 func (cfg *Config) New(opts ...Options) {
 	tracer := new(Tracer)
