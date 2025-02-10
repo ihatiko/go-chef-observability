@@ -23,7 +23,7 @@ type Options func(*Tracer)
 type Tracer struct {
 	ServiceName string `toml:"service_name"`
 	Command     string `toml:"command"`
-	Deployment  string `toml:"deployments"`
+	Deployment  string `toml:"deployment"`
 }
 
 func WithDeployment(name string) Options {
