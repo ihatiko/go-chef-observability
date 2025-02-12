@@ -152,7 +152,7 @@ func (t *Transport) Run() {
 		mux.Handle(metricsPath, promhttp.Handler())
 		mux.HandleFunc(readinessPath, t.Ready)
 		mux.HandleFunc(livenessPath, t.Live)
-		slog.Info("Start tech-http server", slog.Int("port", t.Config.PprofPort))
+		slog.Info("Start pprof tech-http server", slog.Int("port", t.Config.PprofPort))
 		if t.Config.Port == 0 {
 			t.Config.Port = defaultPort
 		}
@@ -164,7 +164,7 @@ func (t *Transport) Run() {
 			WriteTimeout: t.Config.Timeout,
 		}
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Warn("close tech-http server", slog.Any("error", err))
+			slog.Warn("close pprof tech-http server", slog.Any("error", err))
 		}
 	}()
 }
