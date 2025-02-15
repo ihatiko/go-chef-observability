@@ -59,8 +59,9 @@ func (t *Transport) Live(w http.ResponseWriter, r *http.Request) {
 	mutex := &sync.Mutex{}
 	result := map[string]Live{}
 	status := true
-	for _, v := range store.LivenessStore.Get() {
-		wg.Add(1)
+	packages := store.LivenessStore.Get()
+	wg.Add(len(packages))
+	for _, v := range packages {
 		go func(iLive iface.ILive) {
 			resultLv := Live{}
 			defer wg.Done()
