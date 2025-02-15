@@ -57,7 +57,6 @@ type Live struct {
 func (t *Transport) Live(w http.ResponseWriter, r *http.Request) {
 	wg := sync.WaitGroup{}
 	mutex := &sync.Mutex{}
-	defer mutex.Unlock()
 	result := map[string]Live{}
 	status := true
 	for _, v := range store.LivenessStore.Get() {
@@ -88,8 +87,8 @@ func (t *Transport) Live(w http.ResponseWriter, r *http.Request) {
 				status = false
 			}
 			mutex.Lock()
-			defer mutex.Unlock()
 			result[iLive.Name()] = resultLv
+			mutex.Unlock()
 		}(v)
 	}
 	wg.Wait()
