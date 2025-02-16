@@ -27,7 +27,8 @@ const (
 )
 
 const (
-	defaultTimeout = time.Second * 15
+	defaultTimeout         = time.Second * 10
+	defaultLivenessTimeout = time.Second * 5
 )
 
 type Transport struct {
@@ -45,67 +46,98 @@ func (cfg *Config) New(opts ...Options) *Transport {
 	return t
 }
 
+type Status struct {
+	Status string `json:"status"`
+}
+
 func (t *Transport) Ready(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	state := store.GetReadinessState()
+	httpHeader := http.StatusOK
+	status := Status{
+		Status: "ready",
+	}
+	switch state {
+	case store.Error:
+		status.Status = "error"
+		httpHeader = http.StatusInternalServerError
+	case store.InProgress:
+		status.Status = "unavailable"
+		httpHeader = http.StatusServiceUnavailable
+	default:
+	}
+	w.WriteHeader(httpHeader)
+	body, err := json.Marshal(status)
+	if err != nil {
+		slog.Error("marshal status error", slog.Any("error", err))
+	}
+	_, err = w.Write(body)
+	if err != nil {
+		slog.Error("write status error", slog.Any("error", err))
+	}
 }
 
 type Live struct {
-	InternalError error `json:"internal_error"`
-	ContextError  error `json:"context_error"`
+	Error   string `json:"error,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Success bool   `json:"success"`
+	Details any    `json:"details,omitempty"`
 }
 
 func (t *Transport) Live(w http.ResponseWriter, r *http.Request) {
-	wg := sync.WaitGroup{}
-	mutex := &sync.Mutex{}
-	result := map[string]Live{}
+	wg := new(sync.WaitGroup)
+	result := new(sync.Map)
 	status := true
 	packages := store.LivenessStore.Get()
 	wg.Add(len(packages))
 	for _, v := range packages {
 		go func(iLive iface.ILive) {
-			resultLv := Live{}
+			resultLv := new(Live)
+			resultLv.Success = true
 			defer wg.Done()
-			ctx, cancel := context.WithTimeout(context.TODO(), t.Config.Timeout)
-			defer cancel()
-			go func() {
-				componentName := iLive.Name()
-				select {
-				case <-ctx.Done():
-					if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-						resultLv.InternalError = fmt.Errorf("context context deadline exceeded tech-http component: %s", iLive.Name())
-						return
-					}
-					if errors.Is(ctx.Err(), context.Canceled) {
-						return
-					}
-					if ctx.Err() != nil {
-						slog.Error("context errored tech-http component", slog.String("component", componentName))
-					}
-				}
-			}()
-			resultLv.InternalError = iLive.Live(ctx)
-			if resultLv.InternalError != nil || resultLv.ContextError != nil {
-				status = false
+			ctx, cancel := context.WithTimeout(context.TODO(), t.Config.LivenessTimeout)
+			err := iLive.Live(ctx)
+			if err != nil {
+				resultLv.Error = err.Error()
 			}
-			mutex.Lock()
-			result[iLive.Name()] = resultLv
-			mutex.Unlock()
+			cancel()
+			<-ctx.Done()
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				resultLv.Error = "context context deadline exceeded (timeout)"
+			}
+			if ctx.Err() != nil && !errors.Is(ctx.Err(), context.Canceled) {
+				resultLv.Error = ctx.Err().Error()
+			}
+			if resultLv.Error != "" {
+				status = false
+				resultLv.Success = false
+			}
+			resultLv.Name = iLive.GetKey()
+			resultLv.Details = iLive.Details()
+			result.Store(iLive.GetId(), resultLv)
 		}(v)
 	}
 	wg.Wait()
-	data, err := json.Marshal(result)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-	_, err = w.Write(data)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
 	if !status {
 		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	w.Header().Set("Content-Type", "application/json")
+	jsonData := make(map[string]any, len(packages))
+	result.Range(func(k, v any) bool {
+		jsonData[k.(string)] = v
+		return true
+	})
+	data, err := json.Marshal(jsonData)
+	if err != nil {
+		slog.Error("error Marshal response:", slog.Any("error", err))
+	}
+	// Write the response
+	if len(jsonData) > 0 {
+		_, err = w.Write(data)
+		if err != nil {
+			slog.Error("error writing response:", slog.Any("error", err))
+		}
+	}
 }
 
 func (t *Transport) Run() {
@@ -148,6 +180,9 @@ func (t *Transport) Run() {
 		}
 		if t.Config.PprofPort == 0 {
 			t.Config.PprofPort = defaultPprofPort
+		}
+		if t.Config.LivenessTimeout == 0 {
+			t.Config.LivenessTimeout = defaultLivenessTimeout
 		}
 		mux.Handle(metricsPath, promhttp.Handler())
 		mux.HandleFunc(readinessPath, t.Ready)

@@ -13,7 +13,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.34.0
 	golang.org/x/net v0.35.0
 )
-
+replace (
+	github.com/ihatiko/go-chef-core-sdk v0.0.1 => ../go-chef-core-sdk
+)
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
