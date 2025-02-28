@@ -2,7 +2,7 @@
 # имя сервиса
 name = "example"
 # режим дебага
-debug = true
+debug = false
 
 [tech.http]
 port = 8080

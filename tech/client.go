@@ -18,6 +18,7 @@ func Use(arg string) error {
 		e := fmt.Errorf("error unmarshalling tech-config (applyed main config): %v command %s", err, arg)
 		return e
 	}
+	c.ToEnv()
 	c.Tech.Http.New().Run()
 	c.Tech.Logger.New()
 	c.Tech.Tracer.New()
